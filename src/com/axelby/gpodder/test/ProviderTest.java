@@ -1,9 +1,11 @@
+package com.axelby.gpodder.test;
+
+
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.test.ProviderTestCase2;
 
 import com.axelby.gpodder.Provider;
-
 
 public class ProviderTest extends ProviderTestCase2<Provider> {
 	Provider _provider;
