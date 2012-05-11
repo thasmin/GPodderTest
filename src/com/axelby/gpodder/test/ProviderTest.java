@@ -5,10 +5,14 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.test.ProviderTestCase2;
 
+import com.axelby.gpodder.Client;
+import com.axelby.gpodder.Client.Changes;
 import com.axelby.gpodder.Provider;
 
 public class ProviderTest extends ProviderTestCase2<Provider> {
 	Provider _provider;
+	private String _username = "podaxtest";
+	private String _password = "podaxtest";
 
 	public ProviderTest() {
 		super(Provider.class, Provider.AUTHORITY);
@@ -101,6 +105,44 @@ public class ProviderTest extends ProviderTestCase2<Provider> {
 		assertEquals("url2", c.getString(0));
 		assertFalse(c.moveToNext());
 		c.close();
+	}
+
+	public void testLogin() {
+		Client client = new Client(getMockContext(), _username, _password);
+		assertTrue(client.authenticate());
+	}
+
+	public void testServer0Clear() {
+		Client client = new Client(getMockContext(), _username, _password);
+		Changes changes = client.getSubscriptionChanges(0);
+		if (changes.added.size() != 0) {
+			for(String url : changes.added)
+				getMockContentResolver().delete(Provider.URI, "url = ?", new String[] { url });
+			client.syncDiffs();
+			changes = client.getSubscriptionChanges(0);
+		}
+		assertEquals(0, changes.added.size());
+	}
+
+	public void testServerAddDelete() {
+		Client client = new Client(getMockContext(), _username, _password);
+		Changes changes = client.getSubscriptionChanges(0);
+		assertEquals(0, changes.added.size());
+
+		getMockContentResolver().insert(Provider.URI, makeUrlValues("http://blog.axelby.com/podcast.xml"));
+		client.syncDiffs();
+		changes = client.getSubscriptionChanges(0);
+		assertEquals(1, changes.added.size());
+		int timestamp = changes.timestamp;
+
+		getMockContentResolver().delete(Provider.URI, "url = ?", new String[] { "http://blog.axelby.com/podcast.xml" });
+		client.syncDiffs();
+		changes = client.getSubscriptionChanges(timestamp);
+		assertEquals(0, changes.added.size());
+		assertEquals(1, changes.removed.size());
+
+		changes = client.getSubscriptionChanges(0);
+		assertEquals(0, changes.added.size());
 	}
 
 	@Override
